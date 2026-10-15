@@ -49,6 +49,7 @@ static int (*perf_event_release_kernel_ptr)(struct perf_event *event) = NULL;
 static void (*perf_event_enable_ptr)(struct perf_event *event) = NULL;
 static void (*perf_event_disable_inatomic_ptr)(struct perf_event *event) = NULL;
 static int (*task_work_add_ptr)(struct task_struct *task, struct callback_head *twork, bool notify) = NULL;
+static void (*fpsimd_save_state_ptr)(struct user_fpsimd_state *state) = NULL;
 
 static uid_t target_uid = 10362;
 static bool is_delay = false;
@@ -271,8 +272,9 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
         }
         if (tmp_filp && regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
             memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
-            tmp_cur_size += sizeof(regs->user_regs);
-            if (tmp_cur_size + sizeof(regs->user_regs) > tmp_buf_size) {
+            fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
+            tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
+            if (tmp_cur_size + sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state) > tmp_buf_size) {
                 task_work_add_ptr(current, &trace_flush_work, true);
             }
         }
@@ -666,6 +668,8 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function perf_event_disable_inatomic addr: %px\n", perf_event_disable_inatomic_ptr);
     task_work_add_ptr = (void *)kallsyms_lookup_name("task_work_add");
     pr_info("kernel function task_work_add addr: %px\n", task_work_add_ptr);
+    fpsimd_save_state_ptr = (void *)kallsyms_lookup_name("fpsimd_save_state");
+    pr_info("kernel function fpsimd_save_state addr: %px\n", fpsimd_save_state_ptr);
 
     watchdog_create_work.func = watchdog_create_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
