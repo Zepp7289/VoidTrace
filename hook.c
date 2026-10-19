@@ -87,13 +87,13 @@ static struct callback_head trace_flush_work;
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
     struct frame_record *cur = (struct frame_record *)regs->regs[29];
-    pr_info("depth: %02d LR: %px\n", depth++, regs->regs[30]);
+    pr_info("depth: %02d LR: %px\n", depth++, (void *)regs->regs[30]);
     while (cur != 0 && depth < 32) {
         struct frame_record frame_record;
         if (__arch_copy_from_user_ptr(&frame_record, cur, sizeof(frame_record)) > 0) {
             break;
         }
-        pr_info("depth: %02d LR: %px\n", depth, frame_record.lr);
+        pr_info("depth: %02d LR: %px\n", depth, (void *)frame_record.lr);
         cur = (struct frame_record *)frame_record.fp;
         depth++;
     }
@@ -262,7 +262,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     if (current == trace_task) {
         trace_steps++;
         if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next || trace_steps >= max_steps) {
-            pr_info("trace stop pc: %px steps: %lu\n", regs->pc, trace_steps);
+            pr_info("trace stop pc: %px steps: %lu\n", (void *)regs->pc, trace_steps);
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             trace_task = NULL;
@@ -390,8 +390,8 @@ static void after_openat(hook_fargs4_t *args, void *udata) {
         char buf[256];
         compat_strncpy_from_user(buf, filename, sizeof(buf));
 
-        pr_info("openat pid: %d tgid: %d uid: %u filename: %s ret: %d\n", 
-            pid, tgid, uid, buf, args->ret);
+        pr_info("openat pid: %d tgid: %d uid: %u filename: %s ret: %ld\n", 
+            pid, tgid, uid, buf, (long)args->ret);
     }
 }
 
@@ -466,7 +466,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
 
     if (uid == target_uid) {
         pr_info("mmap pid: %d tgid: %d uid: %u addr: %px length: %zx prot: %d fd: %d offset: %zx ret: %px\n", 
-            pid, tgid, uid, addr, length, prot, fd, offset, args->ret);
+            pid, tgid, uid, addr, length, prot, fd, offset, (void *)args->ret);
     }
 
     // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
