@@ -22,7 +22,7 @@
         {
             "label": "Push",
             "type": "shell",
-            "command": "adb push hook.kpm /sdcard/Download/kpm/",
+            "command": "adb push voidtrace.kpm /sdcard/Download/kpm/",
             "dependsOn": [
                 "Clean",
                 "Make"

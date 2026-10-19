@@ -12,14 +12,14 @@
 #include <linux/kernel.h>
 #include <linux/err.h>
 #include <asm/ptrace.h>
-#include "hook.h"
+#include "voidtrace.h"
 
 
-KPM_NAME("hook");
+KPM_NAME("VoidTrace");
 KPM_VERSION("1.0.0");
 KPM_LICENSE("GPL v2");
 KPM_AUTHOR("Zepp7289");
-KPM_DESCRIPTION("hook");
+KPM_DESCRIPTION("invisible in-kernel process tracer");
 
 static pid_t (*__task_pid_nr_ns_ptr)(struct task_struct *task, enum pid_type type, struct pid_namespace *ns) = NULL;
 static struct file *(*filp_open_ptr)(const char *filename, int flags, umode_t mode) = NULL;

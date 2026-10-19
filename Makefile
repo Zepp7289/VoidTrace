@@ -10,7 +10,7 @@ endif
 CC = $(TARGET_COMPILE)gcc
 LD = $(TARGET_COMPILE)ld
 
-MODULE_NAME := hook
+MODULE_NAME := voidtrace
 
 INCLUDE_DIRS := . include patch/include linux/include linux/arch/arm64/include linux/tools/arch/arm64/include
 
