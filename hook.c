@@ -735,6 +735,7 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     //     memset(tmp_buf, 0, tmp_buf_size);
     //     tmp_filp = filp_open_ptr("/sdcard/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
     //     if (IS_ERR(tmp_filp)) {
+    //         pr_err("Failed to open, error: %ld\n", PTR_ERR(tmp_filp));
     //         tmp_filp = NULL;
     //     }
     // }
