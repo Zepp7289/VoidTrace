@@ -15,7 +15,7 @@
 #include "voidtrace.h"
 
 
-KPM_NAME("VoidTrace");
+KPM_NAME("voidtrace");
 KPM_VERSION("1.0.0");
 KPM_LICENSE("GPL v2");
 KPM_AUTHOR("Zepp7289");
