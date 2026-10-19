@@ -581,13 +581,19 @@ static void before_exit(hook_fargs1_t *args, void *udata) {
 }
 
 static void before_ptrace(hook_fargs4_t *args, void *udata) {
+    // long request = (long)syscall_argn(args, 0);
+    // pid_t tpid = (pid_t)syscall_argn(args, 1);
+    // void *addr = (void *)syscall_argn(args, 2);
+    // void *data = (void *)syscall_argn(args, 3);
+
     // struct task_struct *task = current;
     // pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
     // pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
     // uid_t uid = current_uid();
 
     // if (uid == target_uid) {
-    //     pr_info("ptrace pid: %d tgid: %d uid: %u\n", pid, tgid, uid);
+    //     pr_info("ptrace pid: %d tgid: %d uid: %u request: %ld tpid: %d addr: %px data: %px\n",
+    //             pid, tgid, uid, request, tpid, addr, data);
     // }
 
     // if (uid == target_uid) {
