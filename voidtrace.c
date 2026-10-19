@@ -616,7 +616,7 @@ static void before_close(hook_fargs1_t *args, void *udata) {
 }
 
 static long hook_init(const char *args, const char *event, void *__user reserved) {
-    pr_info("hook init ..., args: %s\n", args);
+    pr_info("hook init args: %s\n", args);
 
     __task_pid_nr_ns_ptr = (void *)kallsyms_lookup_name("__task_pid_nr_ns");
     pr_info("kernel function __task_pid_nr_ns addr: %px\n", __task_pid_nr_ns_ptr);
@@ -741,7 +741,7 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     //     memset(tmp_buf, 0, tmp_buf_size);
     //     tmp_filp = filp_open_ptr("/data/media/0/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
     //     if (IS_ERR(tmp_filp)) {
-    //         pr_err("Failed to open, error: %ld\n", PTR_ERR(tmp_filp));
+    //         pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
     //         tmp_filp = NULL;
     //     }
     // }
@@ -754,7 +754,7 @@ static long hook_control(const char *args, char *__user out_msg, int outlen) {
 }
 
 static long hook_exit(void *__user reserved) {
-    pr_info("hook exit ...\n");
+    pr_info("hook exit\n");
 
     // if (tmp_filp) {
     //     if (tmp_cur_size) {
