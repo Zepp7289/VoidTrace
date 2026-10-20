@@ -83,6 +83,7 @@ static struct callback_head watchdog_create_work;
 static struct callback_head watchdog_enable_work;
 static struct callback_head watchdog_release_work;
 static struct callback_head trace_flush_work;
+static bool is_trace = false;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -228,7 +229,8 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
             // }
 
-            // if (!trace_task) {
+            // if (!trace_task && !is_trace) {
+            //     is_trace = true;
             //     trace_task = current;
             //     trace_steps = 0;
             //     task_work_add_ptr(current, &watchdog_create_work, true);
