@@ -136,10 +136,6 @@ static void watchdog_overflow(struct perf_event *event, struct perf_sample_data 
 }
 
 static void trace_start_fn(struct callback_head *work) {
-    if (watchdog_ev) {
-        perf_event_release_kernel_ptr(watchdog_ev);
-        watchdog_ev = NULL;
-    }
     init_watchdog_attr(&watchdog_attr);
     watchdog_ev = perf_event_create_kernel_counter_ptr(&watchdog_attr, -1, current, watchdog_overflow, NULL);
     if (IS_ERR(watchdog_ev)) {
