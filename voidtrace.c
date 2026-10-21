@@ -141,6 +141,10 @@ static void trace_start_fn(struct callback_head *work) {
     if (IS_ERR(watchdog_ev)) {
         pr_err("watchdog create failed: %ld\n", PTR_ERR(watchdog_ev));
         watchdog_ev = NULL;
+        trace_task = NULL;
+        is_trace = false;
+        user_disable_single_step_ptr(current);
+        _task_pt_reg(current)->pstate &= ~DBG_SPSR_SS;
     }
 }
 
@@ -225,7 +229,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
             // }
 
-            // if (!trace_task && !is_trace) {
+            // if (tmp_buf && tmp_filp && !trace_task && !is_trace) {
             //     is_trace = true;
             //     trace_task = current;
             //     trace_steps = 0;
@@ -268,7 +272,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             args->ret = 0;
             return;
         }
-        if (tmp_filp && regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
+        if (regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
             memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
             fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
             tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
@@ -276,7 +280,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
                 task_work_add_ptr(current, &trace_flush_work, true);
             }
         }
-        if (watchdog_ev && __arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
+        if (__arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             task_work_add_ptr(current, &watchdog_enable_work, true);
@@ -760,9 +764,11 @@ static long hook_exit(void *__user reserved) {
     //         tmp_cur_size = 0;
     //     }
     //     filp_close_ptr(tmp_filp, NULL);
+    //     tmp_filp = NULL;
     // }
 
     // vfree_ptr(tmp_buf);
+    // tmp_buf = NULL;
 
     inline_unhook_syscalln(__NR_openat, before_openat, after_openat);
     inline_unhook_syscalln(__NR_unlinkat, before_unlinkat, NULL);
