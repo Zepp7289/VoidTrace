@@ -122,10 +122,9 @@ static void watchdog_enable_fn(struct callback_head *work) {
 }
 
 static void watchdog_overflow(struct perf_event *event, struct perf_sample_data *data, struct pt_regs *regs) {
-    if (current == trace_task) {
-        user_enable_single_step_ptr(current);
-        _task_pt_reg(current)->pstate |= DBG_SPSR_SS;
-    }
+    user_enable_single_step_ptr(current);
+    _task_pt_reg(current)->pstate |= DBG_SPSR_SS;
+
     perf_event_disable_inatomic_ptr(event);
 }
 
@@ -137,8 +136,6 @@ static void trace_start_fn(struct callback_head *work) {
         watchdog_ev = NULL;
         trace_task = NULL;
         is_trace = false;
-        user_disable_single_step_ptr(current);
-        _task_pt_reg(current)->pstate &= ~DBG_SPSR_SS;
     }
 }
 
