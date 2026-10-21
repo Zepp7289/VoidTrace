@@ -79,9 +79,9 @@ static unsigned long trace_steps;
 static unsigned long max_steps = 1UL << 24;
 static struct perf_event *watchdog_ev = NULL;
 static struct perf_event_attr watchdog_attr;
-static struct callback_head watchdog_create_work;
+static struct callback_head trace_start_work;
 static struct callback_head watchdog_enable_work;
-static struct callback_head watchdog_release_work;
+static struct callback_head trace_stop_work;
 static struct callback_head trace_flush_work;
 static bool is_trace = false;
 
@@ -135,7 +135,7 @@ static void watchdog_overflow(struct perf_event *event, struct perf_sample_data 
     perf_event_disable_inatomic_ptr(event);
 }
 
-static void watchdog_create_fn(struct callback_head *work) {
+static void trace_start_fn(struct callback_head *work) {
     if (watchdog_ev) {
         perf_event_release_kernel_ptr(watchdog_ev);
         watchdog_ev = NULL;
@@ -154,7 +154,7 @@ static void watchdog_enable_fn(struct callback_head *work) {
     }
 }
 
-static void watchdog_release_fn(struct callback_head *work) {
+static void trace_stop_fn(struct callback_head *work) {
     if (tmp_filp && tmp_cur_size) {
         kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
         tmp_cur_size = 0;
@@ -233,7 +233,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     is_trace = true;
             //     trace_task = current;
             //     trace_steps = 0;
-            //     task_work_add_ptr(current, &watchdog_create_work, true);
+            //     task_work_add_ptr(current, &trace_start_work, true);
             //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
             // }
 
@@ -268,7 +268,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
             trace_task = NULL;
-            task_work_add_ptr(current, &watchdog_release_work, true);
+            task_work_add_ptr(current, &trace_stop_work, true);
             args->ret = 0;
             return;
         }
@@ -679,9 +679,9 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     fpsimd_save_state_ptr = (void *)kallsyms_lookup_name("fpsimd_save_state");
     pr_info("kernel function fpsimd_save_state addr: %px\n", fpsimd_save_state_ptr);
 
-    watchdog_create_work.func = watchdog_create_fn;
+    trace_start_work.func = trace_start_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
-    watchdog_release_work.func = watchdog_release_fn;
+    trace_stop_work.func = trace_stop_fn;
     trace_flush_work.func = trace_flush_fn;
 
     hook_err_t err = HOOK_NO_ERR;
