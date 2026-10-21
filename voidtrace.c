@@ -749,13 +749,13 @@ static long hook_control(const char *args, char *__user out_msg, int outlen) {
 static long hook_exit(void *__user reserved) {
     pr_info("hook exit\n");
 
-    // if (tmp_filp) {
-    //     filp_close_ptr(tmp_filp, NULL);
-    //     tmp_filp = NULL;
-    // }
+    trace_task = NULL;
+    is_trace = false;
 
-    // vfree_ptr(tmp_buf);
-    // tmp_buf = NULL;
+    if (tmp_filp) {
+        filp_close_ptr(tmp_filp, NULL);
+        tmp_filp = NULL;
+    }
 
     inline_unhook_syscalln(__NR_openat, before_openat, after_openat);
     inline_unhook_syscalln(__NR_unlinkat, before_unlinkat, NULL);
@@ -778,6 +778,9 @@ static long hook_exit(void *__user reserved) {
     }
 
     hook_unwrap(perf_bp_event_ptr, before_perf_bp_event, NULL);
+
+    vfree_ptr(tmp_buf);
+    tmp_buf = NULL;
 
     return 0;
 }
