@@ -104,6 +104,20 @@ static bool is_ldx_family(uint32_t insn) {
     return (insn & 0x3FDF0000) == 0x085F0000;
 }
 
+static void init_attr(struct perf_event_attr *attr, void *addr) {
+    memset(attr, 0, sizeof(*attr));
+    attr->type = PERF_TYPE_BREAKPOINT;
+    attr->size = sizeof(*attr);
+    attr->bp_type = HW_BREAKPOINT_X;
+    attr->bp_addr = (uint64_t)addr;
+    attr->bp_len = HW_BREAKPOINT_LEN_4;
+    attr->disabled = 0;
+    attr->pinned = 1;
+    attr->sample_period = 1;
+    attr->exclude_kernel = 1;
+    attr->exclude_user = 0;
+}
+
 static void init_watchdog_attr(struct perf_event_attr *attr) {
     memset(attr, 0, sizeof(*attr));
     attr->type = PERF_TYPE_RAW;
@@ -292,20 +306,6 @@ static void before_force_sig_info(hook_fargs3_t *args, void *udata) {
         args->skip_origin = true;
         args->ret = 0;
     }
-}
-
-static void init_attr(struct perf_event_attr *attr, void *addr) {
-    memset(attr, 0, sizeof(*attr));
-    attr->type = PERF_TYPE_BREAKPOINT;
-    attr->size = sizeof(*attr);
-    attr->bp_type = HW_BREAKPOINT_X;
-    attr->bp_addr = (uint64_t)addr;
-    attr->bp_len = HW_BREAKPOINT_LEN_4;
-    attr->disabled = 0;
-    attr->pinned = 1;
-    attr->sample_period = 1;
-    attr->exclude_kernel = 1;
-    attr->exclude_user = 0;
 }
 
 static void before_do_filp_open(hook_fargs3_t *args, void *udata) {
@@ -750,10 +750,6 @@ static long hook_exit(void *__user reserved) {
     pr_info("hook exit\n");
 
     // if (tmp_filp) {
-    //     if (tmp_cur_size) {
-    //         kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-    //         tmp_cur_size = 0;
-    //     }
     //     filp_close_ptr(tmp_filp, NULL);
     //     tmp_filp = NULL;
     // }
