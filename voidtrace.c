@@ -118,9 +118,7 @@ static void init_watchdog_attr(struct perf_event_attr *attr) {
 }
 
 static void watchdog_enable_fn(struct callback_head *work) {
-    if (watchdog_ev) {
-        perf_event_enable_ptr(watchdog_ev);
-    }
+    perf_event_enable_ptr(watchdog_ev);
 }
 
 static void watchdog_overflow(struct perf_event *event, struct perf_sample_data *data, struct pt_regs *regs) {
@@ -145,24 +143,19 @@ static void trace_start_fn(struct callback_head *work) {
 }
 
 static void trace_flush_fn(struct callback_head *work) {
-    if (tmp_filp && tmp_cur_size) {
-        ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-        if (ret != (ssize_t)tmp_cur_size) {
-            pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
-        }
-        tmp_cur_size = 0;
+    ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+    if (ret != (ssize_t)tmp_cur_size) {
+        pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
     }
+    tmp_cur_size = 0;
 }
 
 static void trace_stop_fn(struct callback_head *work) {
-    if (tmp_filp && tmp_cur_size) {
-        kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-        tmp_cur_size = 0;
-    }
-    if (watchdog_ev) {
-        perf_event_release_kernel_ptr(watchdog_ev);
-        watchdog_ev = NULL;
-    }
+    kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+    tmp_cur_size = 0;
+
+    perf_event_release_kernel_ptr(watchdog_ev);
+    watchdog_ev = NULL;
 }
 
 static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
@@ -741,11 +734,12 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // if (tmp_buf) {
     //     memset(tmp_buf, 0, tmp_buf_size);
-    //     tmp_filp = filp_open_ptr("/sdcard/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
-    //     if (IS_ERR(tmp_filp)) {
-    //         pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
-    //         tmp_filp = NULL;
-    //     }
+    // }
+
+    // tmp_filp = filp_open_ptr("/sdcard/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    // if (IS_ERR(tmp_filp)) {
+    //     pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
+    //     tmp_filp = NULL;
     // }
 
     return 0;
