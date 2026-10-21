@@ -104,16 +104,6 @@ static bool is_ldx_family(uint32_t insn) {
     return (insn & 0x3FDF0000) == 0x085F0000;
 }
 
-static void trace_flush_fn(struct callback_head *work) {
-    if (tmp_filp && tmp_cur_size) {
-        ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-        if (ret != (ssize_t)tmp_cur_size) {
-            pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
-        }
-        tmp_cur_size = 0;
-    }
-}
-
 static void init_watchdog_attr(struct perf_event_attr *attr) {
     memset(attr, 0, sizeof(*attr));
     attr->type = PERF_TYPE_RAW;
@@ -125,6 +115,12 @@ static void init_watchdog_attr(struct perf_event_attr *attr) {
     attr->exclude_kernel = 1;
     attr->exclude_user = 0;
     attr->inherit = 0;
+}
+
+static void watchdog_enable_fn(struct callback_head *work) {
+    if (watchdog_ev) {
+        perf_event_enable_ptr(watchdog_ev);
+    }
 }
 
 static void watchdog_overflow(struct perf_event *event, struct perf_sample_data *data, struct pt_regs *regs) {
@@ -148,9 +144,13 @@ static void trace_start_fn(struct callback_head *work) {
     }
 }
 
-static void watchdog_enable_fn(struct callback_head *work) {
-    if (watchdog_ev) {
-        perf_event_enable_ptr(watchdog_ev);
+static void trace_flush_fn(struct callback_head *work) {
+    if (tmp_filp && tmp_cur_size) {
+        ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+        if (ret != (ssize_t)tmp_cur_size) {
+            pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
+        }
+        tmp_cur_size = 0;
     }
 }
 
