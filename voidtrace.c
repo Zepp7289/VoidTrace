@@ -76,7 +76,7 @@ static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
 static struct task_struct *trace_task = NULL;
 static unsigned long trace_steps = 0;
-static unsigned long max_steps = 1UL << 24;
+static unsigned long max_steps = 1UL << 26;
 static struct perf_event *watchdog_ev = NULL;
 static struct perf_event_attr watchdog_attr;
 static struct callback_head trace_start_work;
