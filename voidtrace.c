@@ -50,6 +50,7 @@ static void (*perf_event_enable_ptr)(struct perf_event *event) = NULL;
 static void (*perf_event_disable_inatomic_ptr)(struct perf_event *event) = NULL;
 static int (*task_work_add_ptr)(struct task_struct *task, struct callback_head *twork, bool notify) = NULL;
 static void (*fpsimd_save_state_ptr)(struct user_fpsimd_state *state) = NULL;
+static void (*wake_up_new_task_ptr)(struct task_struct *p) = NULL;
 
 static uid_t target_uid = 10362;
 static bool is_delay = false;
@@ -168,6 +169,23 @@ static void trace_stop_fn(struct callback_head *work) {
 
     perf_event_release_kernel_ptr(watchdog_ev);
     watchdog_ev = NULL;
+}
+
+static void before_wake_up_new_task(hook_fargs1_t *args, void *udata) {
+    struct task_struct *p = (struct task_struct *)args->arg0;
+
+    struct task_struct *task = current;
+    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
+    uid_t uid = current_uid();
+
+    pid_t child_pid = __task_pid_nr_ns_ptr(p, PIDTYPE_PID, NULL);
+    pid_t child_tgid = __task_pid_nr_ns_ptr(p, PIDTYPE_TGID, NULL);
+
+    if (uid == target_uid) {
+        pr_info("wake_up_new_task pid: %d tgid: %d uid: %u child pid: %d child tgid: %d birth pc: %px\n",
+                pid, tgid, uid, child_pid, child_tgid, (void *)_task_pt_reg(p)->pc);
+    }
 }
 
 static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
@@ -677,6 +695,8 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function task_work_add addr: %px\n", task_work_add_ptr);
     fpsimd_save_state_ptr = (void *)kallsyms_lookup_name("fpsimd_save_state");
     pr_info("kernel function fpsimd_save_state addr: %px\n", fpsimd_save_state_ptr);
+    wake_up_new_task_ptr = (void *)kallsyms_lookup_name("wake_up_new_task");
+    pr_info("kernel function wake_up_new_task addr: %px\n", wake_up_new_task_ptr);
 
     trace_start_work.func = trace_start_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
@@ -736,6 +756,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook force_sig_info error: %d\n", err);
     }
+    err = hook_wrap1(wake_up_new_task_ptr, before_wake_up_new_task, NULL, NULL);
+    if (err) {
+        pr_err("hook wake_up_new_task error: %d\n", err);
+    }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // if (tmp_buf) {
@@ -778,6 +802,7 @@ static long hook_exit(void *__user reserved) {
     hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
     hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
     hook_unwrap(force_sig_info_ptr, before_force_sig_info, NULL);
+    hook_unwrap(wake_up_new_task_ptr, before_wake_up_new_task, NULL);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
