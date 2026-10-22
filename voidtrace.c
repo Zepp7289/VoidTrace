@@ -75,7 +75,7 @@ static size_t tmp_filp_size = 0;
 static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
 static struct task_struct *trace_task = NULL;
-static unsigned long trace_steps;
+static unsigned long trace_steps = 0;
 static unsigned long max_steps = 1UL << 24;
 static struct perf_event *watchdog_ev = NULL;
 static struct perf_event_attr watchdog_attr;
@@ -150,6 +150,7 @@ static void trace_start_fn(struct callback_head *work) {
         watchdog_ev = NULL;
         trace_task = NULL;
         is_trace = false;
+        tmp_cur_size = 0;
     }
 }
 
@@ -236,7 +237,11 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // if (tmp_buf && tmp_filp && !trace_task && !is_trace) {
             //     is_trace = true;
             //     trace_task = current;
-            //     trace_steps = 0;
+
+            //     memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
+            //     fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
+            //     tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
+
             //     task_work_add_ptr(current, &trace_start_work, true);
             //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
             // }
@@ -267,6 +272,16 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
 
     if (current == trace_task) {
         trace_steps++;
+
+        if (regs->pc >= (uint64_t)segment_addr && regs->pc <= (uint64_t)segment_addr + segment_func_offset_next) {
+            memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
+            fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
+            tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
+            if (tmp_cur_size + sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state) > tmp_buf_size) {
+                task_work_add_ptr(current, &trace_flush_work, true);
+            }
+        }
+
         if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next || trace_steps >= max_steps) {
             pr_info("trace stop pc: %px steps: %lu\n", (void *)regs->pc, trace_steps);
             user_disable_single_step_ptr(current);
@@ -276,14 +291,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             args->ret = 0;
             return;
         }
-        if (regs->pc >= (uint64_t)segment_addr && regs->pc < (uint64_t)segment_addr + segment_func_offset_next) {
-            memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
-            fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
-            tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
-            if (tmp_cur_size + sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state) > tmp_buf_size) {
-                task_work_add_ptr(current, &trace_flush_work, true);
-            }
-        }
+
         if (__arch_copy_from_user_ptr(&insn, (void *)regs->pc, sizeof(insn)) == 0 && is_ldx_family(insn)) {
             user_disable_single_step_ptr(current);
             regs->pstate &= ~DBG_SPSR_SS;
@@ -291,6 +299,7 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
             args->ret = 0;
             return;
         }
+
         user_enable_single_step_ptr(current);
         regs->pstate |= DBG_SPSR_SS;
         args->ret = 0;
