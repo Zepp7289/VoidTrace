@@ -491,9 +491,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
     // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
     //     segment_addr = (void *)(args->ret);
     //     segment_length = length;
-    // }
 
-    // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
     //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_length + sizeof(patch_code)));
