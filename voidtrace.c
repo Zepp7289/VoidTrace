@@ -488,22 +488,22 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             pid, tgid, uid, addr, length, prot, fd, offset, (void *)args->ret);
     }
 
-    // if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
-    //     segment_addr = (void *)(args->ret);
-    //     segment_length = length;
+    if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
+        segment_addr = (void *)(args->ret);
+        segment_length = length;
 
-    //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
-    //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
-    //     selinux_state_ptr->enforcing = 0;
-    //     hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
-    //     if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
-    //     // hbp_next = register_wide_hw_breakpoint_ptr(&attr_next, NULL, NULL);
-    //     // if (IS_ERR(hbp_next)) { pr_err("hbp_next: %ld\n", PTR_ERR(hbp_next)); hbp_next = NULL; }
-    //     selinux_state_ptr->enforcing = 1;
-    //     if (hbp || hbp_next) {
-    //         is_hook = true;
-    //     }
-    // }
+        init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
+        // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
+        selinux_state_ptr->enforcing = 0;
+        hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
+        if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
+        // hbp_next = register_wide_hw_breakpoint_ptr(&attr_next, NULL, NULL);
+        // if (IS_ERR(hbp_next)) { pr_err("hbp_next: %ld\n", PTR_ERR(hbp_next)); hbp_next = NULL; }
+        selinux_state_ptr->enforcing = 1;
+        if (hbp || hbp_next) {
+            is_hook = true;
+        }
+    }
 
     // if (uid == target_uid && length == 0x4711340 && offset == 0x2b9c000) {
     //     __arch_copy_to_user_ptr((void *)((char *)segment_addr + segment_length), patch_code, sizeof(patch_code));
