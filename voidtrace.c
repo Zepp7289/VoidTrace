@@ -183,8 +183,8 @@ static void before_wake_up_new_task(hook_fargs1_t *args, void *udata) {
     pid_t child_tgid = __task_pid_nr_ns_ptr(p, PIDTYPE_TGID, NULL);
 
     if (uid == target_uid) {
-        pr_info("wake_up_new_task pid: %d tgid: %d uid: %u child pid: %d child tgid: %d birth pc: %px\n",
-                pid, tgid, uid, child_pid, child_tgid, (void *)_task_pt_reg(p)->pc);
+        pr_info("wake_up_new_task pid: %d tgid: %d uid: %u child pid: %d child tgid: %d\n",
+                pid, tgid, uid, child_pid, child_tgid);
     }
 }
 
