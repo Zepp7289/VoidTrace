@@ -494,7 +494,6 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
 
     //     init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
     //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
-    //     // init_attr(&attr_next, (void *)((char *)segment_addr + segment_length + sizeof(patch_code)));
     //     selinux_state_ptr->enforcing = 0;
     //     hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
     //     if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
