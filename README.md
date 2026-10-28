@@ -1,7 +1,6 @@
 # VoidTrace
 
-KPM module based on [KernelPatch](https://github.com/bmax121/KernelPatch)
-an invisible in-kernel process tracer
+KPM module based on [KernelPatch](https://github.com/bmax121/KernelPatch) provides an invisible in-kernel process tracer
 
 ```
  █████   █████           ███      █████ ███████████                                      
