@@ -1,6 +1,7 @@
 # VoidTrace
 
-基于 [KernelPatch](https://github.com/bmax121/KernelPatch) 框架的KPM模块，提供隐蔽在内核态的用户态进程单步追踪器
+KPM module based on [KernelPatch](https://github.com/bmax121/KernelPatch)
+an invisible in-kernel process tracer
 
 ```
  █████   █████           ███      █████ ███████████                                      
@@ -13,15 +14,12 @@
      ░░░       ░░░░░░  ░░░░░  ░░░░░░░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░   ░░░░░░  
 ```
 
-- 开发设备：alioth Linux 4.19.157
-- 许可证：GPL v2
+- Device: alioth 
+- Kernel: 4.19.157
+- License: GPL-2.0
 
-## 构建
-
-依赖 KernelPatch 源码与 aarch64 交叉工具链：
+## Build
 
 ```
 make KP_DIR=/path/to/KernelPatch TARGET_COMPILE=aarch64-linux-gnu-
 ```
-
-追踪目标（uid、段特征、断点偏移、最大步数等）当前为源码内常量，需按实际目标修改后编译
