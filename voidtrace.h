@@ -220,3 +220,5 @@ struct siginfo {
 	int si_errno;
 	int si_code;
 };
+
+struct cred;

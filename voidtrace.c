@@ -51,6 +51,11 @@ static void (*perf_event_disable_inatomic_ptr)(struct perf_event *event) = NULL;
 static int (*task_work_add_ptr)(struct task_struct *task, struct callback_head *twork, bool notify) = NULL;
 static void (*fpsimd_save_state_ptr)(struct user_fpsimd_state *state) = NULL;
 static void (*wake_up_new_task_ptr)(struct task_struct *p) = NULL;
+static struct cred *(*prepare_kernel_cred_ptr)(struct task_struct *daemon) = NULL;
+static const struct cred *(*override_creds_ptr)(const struct cred *new) = NULL;
+static void (*revert_creds_ptr)(const struct cred *old) = NULL;
+static void (*abort_creds_ptr)(struct cred *new) = NULL;
+static int (*security_file_permission_ptr)(struct file *file, int mask) = NULL;
 
 static uid_t target_uid = 10362;
 static bool is_delay = false;
@@ -85,6 +90,7 @@ static struct callback_head watchdog_enable_work;
 static struct callback_head trace_stop_work;
 static struct callback_head trace_flush_work;
 static bool is_trace = false;
+static struct cred *kernel_cred = NULL;
 
 static void unwind(struct pt_regs *regs) {
     int depth = 0;
@@ -631,6 +637,13 @@ static void before_close(hook_fargs1_t *args, void *udata) {
     }
 }
 
+static void before_security_file_permission(hook_fargs2_t *args, void *udata) {
+    if ((struct file *)args->arg0 == tmp_filp) {
+        args->skip_origin = true;
+        args->ret = 0;
+    }
+}
+
 static long hook_init(const char *args, const char *event, void *__user reserved) {
     pr_info("hook init args: %s\n", args);
 
@@ -694,6 +707,16 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function fpsimd_save_state addr: %px\n", fpsimd_save_state_ptr);
     wake_up_new_task_ptr = (void *)kallsyms_lookup_name("wake_up_new_task");
     pr_info("kernel function wake_up_new_task addr: %px\n", wake_up_new_task_ptr);
+    prepare_kernel_cred_ptr = (void *)kallsyms_lookup_name("prepare_kernel_cred");
+    pr_info("kernel function prepare_kernel_cred addr: %px\n", prepare_kernel_cred_ptr);
+    override_creds_ptr = (void *)kallsyms_lookup_name("override_creds");
+    pr_info("kernel function override_creds addr: %px\n", override_creds_ptr);
+    revert_creds_ptr = (void *)kallsyms_lookup_name("revert_creds");
+    pr_info("kernel function revert_creds addr: %px\n", revert_creds_ptr);
+    abort_creds_ptr = (void *)kallsyms_lookup_name("abort_creds");
+    pr_info("kernel function abort_creds addr: %px\n", abort_creds_ptr);
+    security_file_permission_ptr = (void *)kallsyms_lookup_name("security_file_permission");
+    pr_info("kernel function security_file_permission addr: %px\n", security_file_permission_ptr);
 
     trace_start_work.func = trace_start_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
@@ -757,16 +780,27 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook wake_up_new_task error: %d\n", err);
     }
+    err = hook_wrap2(security_file_permission_ptr, before_security_file_permission, NULL, NULL);
+    if (err) {
+        pr_err("hook security_file_permission error: %d\n", err);
+    }
 
     // tmp_buf = vmalloc_ptr(tmp_buf_size);
     // if (tmp_buf) {
     //     memset(tmp_buf, 0, tmp_buf_size);
     // }
 
-    // tmp_filp = filp_open_ptr("/sdcard/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
-    // if (IS_ERR(tmp_filp)) {
-    //     pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
-    //     tmp_filp = NULL;
+    // kernel_cred = prepare_kernel_cred_ptr(NULL);
+    // if (kernel_cred) {
+    //     selinux_state_ptr->enforcing = 0;
+    //     const struct cred *old_cred = override_creds_ptr(kernel_cred);
+    //     tmp_filp = filp_open_ptr("/data/media/0/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    //     revert_creds_ptr(old_cred);
+    //     selinux_state_ptr->enforcing = 1;
+    //     if (IS_ERR(tmp_filp)) {
+    //         pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
+    //         tmp_filp = NULL;
+    //     }
     // }
 
     return 0;
@@ -800,12 +834,17 @@ static long hook_exit(void *__user reserved) {
     hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
     hook_unwrap(force_sig_info_ptr, before_force_sig_info, NULL);
     hook_unwrap(wake_up_new_task_ptr, before_wake_up_new_task, NULL);
+    hook_unwrap(security_file_permission_ptr, before_security_file_permission, NULL);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
     if (watchdog_ev) {
         perf_event_release_kernel_ptr(watchdog_ev);
         watchdog_ev = NULL;
+    }
+    if (kernel_cred) {
+        abort_creds_ptr(kernel_cred);
+        kernel_cred = NULL;
     }
 
     hook_unwrap(perf_bp_event_ptr, before_perf_bp_event, NULL);
