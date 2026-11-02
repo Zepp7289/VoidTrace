@@ -794,7 +794,7 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     // if (kernel_cred) {
     //     selinux_state_ptr->enforcing = 0;
     //     const struct cred *old_cred = override_creds_ptr(kernel_cred);
-    //     tmp_filp = filp_open_ptr("/data/media/0/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    //     tmp_filp = filp_open_ptr("/data/media/0/Download/trace.bin", O_RDWR | O_CREAT | O_TRUNC | O_KERNEL_LARGEFILE, 0644);
     //     revert_creds_ptr(old_cred);
     //     selinux_state_ptr->enforcing = 1;
     //     if (IS_ERR(tmp_filp)) {
