@@ -111,7 +111,7 @@ static bool is_ldx_family(uint32_t insn) {
     return (insn & 0x3FDF0000) == 0x085F0000;
 }
 
-static void init_attr(struct perf_event_attr *attr, void *addr) {
+static void init_hwbp_attr(struct perf_event_attr *attr, void *addr) {
     memset(attr, 0, sizeof(*attr));
     attr->type = PERF_TYPE_BREAKPOINT;
     attr->size = sizeof(*attr);
@@ -498,8 +498,8 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
         segment_addr = (void *)(args->ret);
         segment_length = length;
 
-        init_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
-        // init_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
+        init_hwbp_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
+        // init_hwbp_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
         selinux_state_ptr->enforcing = 0;
         hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
         if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
