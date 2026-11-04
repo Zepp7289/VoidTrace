@@ -145,26 +145,32 @@ static void watchdog_overflow(struct perf_event *event, struct perf_sample_data 
 }
 
 static void trace_start_fn(struct callback_head *work) {
-    init_watchdog_attr(&watchdog_attr);
-    watchdog_ev = perf_event_create_kernel_counter_ptr(&watchdog_attr, -1, current, watchdog_overflow, NULL);
-    if (IS_ERR(watchdog_ev)) {
-        pr_err("watchdog create failed: %ld\n", PTR_ERR(watchdog_ev));
-        watchdog_ev = NULL;
-        trace_task = NULL;
-        is_trace = false;
-        tmp_cur_size = 0;
-    }
-
     char path[256];
     snprintf(path, sizeof(path), "/data/data/%s/files/trace.bin", app_name);
     tmp_filp = filp_open_ptr(path, O_RDWR | O_CREAT | O_TRUNC | O_KERNEL_LARGEFILE, 0644);
     if (IS_ERR(tmp_filp)) {
         pr_err("filp_open error: %ld\n", PTR_ERR(tmp_filp));
         tmp_filp = NULL;
-        trace_task = NULL;
-        is_trace = false;
-        tmp_cur_size = 0;
+        goto err;
     }
+
+    init_watchdog_attr(&watchdog_attr);
+    watchdog_ev = perf_event_create_kernel_counter_ptr(&watchdog_attr, -1, current, watchdog_overflow, NULL);
+    if (IS_ERR(watchdog_ev)) {
+        pr_err("watchdog create failed: %ld\n", PTR_ERR(watchdog_ev));
+        watchdog_ev = NULL;
+        goto err_close_filp;
+    }
+
+    return;
+
+err_close_filp:
+    filp_close_ptr(tmp_filp, NULL);
+    tmp_filp = NULL;
+err:
+    trace_task = NULL;
+    is_trace = false;
+    tmp_cur_size = 0;
 }
 
 static void trace_flush_fn(struct callback_head *work) {
