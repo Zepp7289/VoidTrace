@@ -785,10 +785,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
         pr_err("hook security_file_permission error: %d\n", err);
     }
 
-    // tmp_buf = vmalloc_ptr(tmp_buf_size);
-    // if (tmp_buf) {
-    //     memset(tmp_buf, 0, tmp_buf_size);
-    // }
+    tmp_buf = vmalloc_ptr(tmp_buf_size);
+    if (tmp_buf) {
+        memset(tmp_buf, 0, tmp_buf_size);
+    }
 
     // kernel_cred = prepare_kernel_cred_ptr(NULL);
     // if (kernel_cred) {
