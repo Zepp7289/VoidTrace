@@ -221,6 +221,4 @@ struct siginfo {
 	int si_code;
 };
 
-struct cred;
-
 #define O_KERNEL_LARGEFILE 0400000

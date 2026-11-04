@@ -646,13 +646,6 @@ static void before_close(hook_fargs1_t *args, void *udata) {
     }
 }
 
-static void before_security_file_permission(hook_fargs2_t *args, void *udata) {
-    if ((struct file *)args->arg0 == tmp_filp) {
-        args->skip_origin = true;
-        args->ret = 0;
-    }
-}
-
 static long hook_init(const char *args, const char *event, void *__user reserved) {
     pr_info("hook init args: %s\n", args);
 
