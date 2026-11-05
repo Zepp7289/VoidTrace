@@ -14,7 +14,6 @@
 #include <asm/ptrace.h>
 #include "voidtrace.h"
 
-
 KPM_NAME("voidtrace");
 KPM_VERSION("1.0.0");
 KPM_LICENSE("GPL v2");
@@ -464,7 +463,6 @@ static void before_unlinkat(hook_fargs3_t *args, void *udata) {
         // }
     }
 }
-
 
 static void before_mmap(hook_fargs6_t *args, void *udata) {
     void *addr = (void *)syscall_argn(args, 0);
