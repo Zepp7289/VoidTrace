@@ -51,6 +51,7 @@ static void (*perf_event_disable_inatomic_ptr)(struct perf_event *event) = NULL;
 static int (*task_work_add_ptr)(struct task_struct *task, struct callback_head *twork, bool notify) = NULL;
 static void (*fpsimd_save_state_ptr)(struct user_fpsimd_state *state) = NULL;
 static void (*wake_up_new_task_ptr)(struct task_struct *p) = NULL;
+static void (*do_exit_ptr)(long code) = NULL;
 
 static uid_t target_uid = 10362;
 static char *app_name = "com.taobao.taobao";
@@ -652,6 +653,23 @@ static void before_close(hook_fargs1_t *args, void *udata) {
     }
 }
 
+static void before_do_exit(hook_fargs1_t *args, void *udata) {
+    long code = (long)args->arg0;
+
+    struct task_struct *task = current;
+    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
+    uid_t uid = current_uid();
+
+    if (uid == target_uid) {
+        pr_info("do_exit pid: %d tgid: %d uid: %u code: 0x%lx\n", pid, tgid, uid, code);
+    }
+
+    if (task == trace_task) {
+        pr_info("trace stop in do_exit steps: %lu\n", trace_steps);
+    }
+}
+
 static long hook_init(const char *args, const char *event, void *__user reserved) {
     pr_info("hook init args: %s\n", args);
 
@@ -715,6 +733,8 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function fpsimd_save_state addr: %px\n", fpsimd_save_state_ptr);
     wake_up_new_task_ptr = (void *)kallsyms_lookup_name("wake_up_new_task");
     pr_info("kernel function wake_up_new_task addr: %px\n", wake_up_new_task_ptr);
+    do_exit_ptr = (void *)kallsyms_lookup_name("do_exit");
+    pr_info("kernel function do_exit addr: %px\n", do_exit_ptr);
 
     trace_start_work.func = trace_start_fn;
     watchdog_enable_work.func = watchdog_enable_fn;
@@ -778,6 +798,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook wake_up_new_task error: %d\n", err);
     }
+    err = hook_wrap1(do_exit_ptr, before_do_exit, NULL, NULL);
+    if (err) {
+        pr_err("hook do_exit error: %d\n", err);
+    }
 
     tmp_buf = vmalloc_ptr(tmp_buf_size);
     if (tmp_buf) {
@@ -815,6 +839,7 @@ static long hook_exit(void *__user reserved) {
     hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
     hook_unwrap(force_sig_info_ptr, before_force_sig_info, NULL);
     hook_unwrap(wake_up_new_task_ptr, before_wake_up_new_task, NULL);
+    hook_unwrap(do_exit_ptr, before_do_exit, NULL);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
     if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
