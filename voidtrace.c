@@ -664,6 +664,8 @@ static void before_do_exit(hook_fargs1_t *args, void *udata) {
 
     if (task == trace_task) {
         pr_info("trace stop in do_exit steps: %lu\n", trace_steps);
+        trace_task = NULL;
+        task_work_add_ptr(task, &trace_stop_work, true);
     }
 }
 
