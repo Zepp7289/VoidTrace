@@ -310,9 +310,8 @@ static void after_reinstall_suspended_bps(hook_fargs1_t *args, void *udata) {
     uint32_t insn = 0;
 
     if (current == trace_task) {
-        trace_steps++;
-
         if (regs->pc >= (uint64_t)segment_addr && regs->pc <= (uint64_t)segment_addr + segment_func_offset_next) {
+            trace_steps++;
             memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
             fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
             tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
