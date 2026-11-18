@@ -274,6 +274,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // }
 
             // if (tmp_buf && !trace_task && !is_trace) {
+            //     trace_steps++;
             //     is_trace = true;
             //     trace_task = current;
 
