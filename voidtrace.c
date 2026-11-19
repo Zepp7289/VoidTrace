@@ -274,7 +274,6 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // }
 
             // if (tmp_buf && !trace_task && !is_trace) {
-            //     trace_steps++;
             //     is_trace = true;
             //     trace_task = current;
 
@@ -284,6 +283,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
             //     task_work_add_ptr(current, &trace_start_work, true);
             //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
+            //     trace_steps++;
             // }
 
         } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
