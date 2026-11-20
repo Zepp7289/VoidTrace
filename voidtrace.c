@@ -174,22 +174,30 @@ err:
 }
 
 static void trace_flush_fn(struct callback_head *work) {
-    ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-    if (ret != (ssize_t)tmp_cur_size) {
-        pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
+    if (tmp_filp && tmp_cur_size > 0) {
+        ssize_t ret = kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+        if (ret != (ssize_t)tmp_cur_size) {
+            pr_err("trace flush short: %zd fill: %zu\n", ret, tmp_cur_size);
+        }
+        tmp_cur_size = 0;
     }
-    tmp_cur_size = 0;
 }
 
 static void trace_stop_fn(struct callback_head *work) {
-    kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
-    tmp_cur_size = 0;
+    if (tmp_filp && tmp_cur_size > 0) {
+        kernel_write_ptr(tmp_filp, tmp_buf, tmp_cur_size, &tmp_filp_pos);
+        tmp_cur_size = 0;
+    }
 
-    perf_event_release_kernel_ptr(watchdog_ev);
-    watchdog_ev = NULL;
+    if (watchdog_ev) {
+        perf_event_release_kernel_ptr(watchdog_ev);
+        watchdog_ev = NULL;
+    }
 
-    filp_close_ptr(tmp_filp, NULL);
-    tmp_filp = NULL;
+    if (tmp_filp) {
+        filp_close_ptr(tmp_filp, NULL);
+        tmp_filp = NULL;
+    }
 }
 
 static void before_wake_up_new_task(hook_fargs1_t *args, void *udata) {
