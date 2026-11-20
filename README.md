@@ -22,3 +22,7 @@ KPM module based on [KernelPatch](https://github.com/bmax121/KernelPatch) provid
 ```
 make KP_DIR=/path/to/KernelPatch TARGET_COMPILE=aarch64-linux-gnu-
 ```
+
+## Introduce
+
+https://zepp7289.github.io/posts/introduce-voidtrace/
