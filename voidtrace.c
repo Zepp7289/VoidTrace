@@ -49,14 +49,16 @@ static void (*do_exit_ptr)(long code) = NULL;
 
 static uid_t target_uid = 0;
 static char *app_name = "com.example";
-static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
 static uint64_t segment_offset = 0x0;
 static uint64_t segment_func_offset = 0x0;
 static uint64_t segment_func_offset_next = 0x0;
+static unsigned long max_steps = 1UL << 24;
 static unsigned char patch_code[] = {
     0x0, 0x0, 0x0, 0x0,
 };
+
+static void *segment_addr = NULL;
 static bool is_hook = false;
 static struct perf_event * __percpu *hbp = NULL;
 static struct perf_event_attr attr;
@@ -72,7 +74,6 @@ static size_t tmp_cur_size = 0;
 static loff_t tmp_filp_pos = 0;
 static struct task_struct *trace_task = NULL;
 static unsigned long trace_steps = 0;
-static unsigned long max_steps = 1UL << 24;
 static struct perf_event *watchdog_ev = NULL;
 static struct perf_event_attr watchdog_attr;
 static struct callback_head trace_start_work;
