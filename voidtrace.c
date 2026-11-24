@@ -53,6 +53,7 @@ static uint64_t segment_length = 0x0;
 static uint64_t segment_offset = 0x0;
 static uint64_t segment_func_offset = 0x0;
 static uint64_t segment_func_offset_next = 0x0;
+static bool trace_mode = false;
 static unsigned long max_steps = 1UL << 24;
 static unsigned char patch_code[] = {
     0x0, 0x0, 0x0, 0x0,
@@ -261,7 +262,7 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
             // }
 
-            if (tmp_buf && !trace_task && !is_trace) {
+            if (trace_mode && tmp_buf && !trace_task && !is_trace) {
                 pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
                 trace_steps++;
                 is_trace = true;
