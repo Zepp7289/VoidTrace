@@ -52,17 +52,15 @@ static void (*fpsimd_save_state_ptr)(struct user_fpsimd_state *state) = NULL;
 static void (*wake_up_new_task_ptr)(struct task_struct *p) = NULL;
 static void (*do_exit_ptr)(long code) = NULL;
 
-static uid_t target_uid = 10362;
-static char *app_name = "com.taobao.taobao";
-static bool is_delay = false;
-static int open_count = 0;
+static uid_t target_uid = 0;
+static char *app_name = "com.example";
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
 static uint64_t segment_offset = 0x0;
-static uint64_t segment_func_offset = 0x15B8ACC;
-static uint64_t segment_func_offset_next = 0x4097000;
+static uint64_t segment_func_offset = 0x0;
+static uint64_t segment_func_offset_next = 0x0;
 static unsigned char patch_code[] = {
-    0x03, 0xf0, 0x67, 0x1e,
+    0x0, 0x0, 0x0, 0x0,
 };
 static bool is_hook = false;
 static struct perf_event * __percpu *hbp = NULL;
@@ -224,11 +222,9 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
     if (segment_addr && current_uid() == target_uid) {
         if (regs->pc == (uint64_t)segment_addr + segment_func_offset) {
+            // regs->regs[0] = 0x0;
+
             // unwind(regs);
-
-            // pr_info("[0x%llx]regs[8]: %px\n", segment_func_offset, regs->regs[8]);
-
-            // regs->regs[0] = 0x2;
 
             // char buf[256];
             // memset(buf, 0 ,sizeof(buf));
@@ -249,19 +245,9 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset, regs->regs[0]);
             // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
             // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
-            // if (*(uint32_t *)buf == 0xfab11baf) {
-            //     tmp_filp_size = tmp_buf_size;
-            //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[0]), tmp_filp_size);
-            // }
-
-            // char buf[256];
-            // memset(buf, 0 ,sizeof(buf));
-            // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset, regs->regs[0]);
-            // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-            // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
             // size_t dll_len = *(size_t *)&buf[0x18];
             // pr_info("[0x%llx]dll_len: %zx\n", segment_func_offset, dll_len);
-            // if (dll_len == 0x482400) {
+            // if (dll_len == 0x0) {
             //     tmp_filp_size = dll_len + 0x20;
             //     __arch_copy_from_user_ptr(tmp_buf, (void *)(regs->regs[0]), tmp_filp_size);
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[0] + 0x20 + 0x18D88C), patch_code, sizeof(patch_code));
@@ -365,34 +351,6 @@ static void before_force_sig_info(hook_fargs3_t *args, void *udata) {
     }
 }
 
-static void before_do_filp_open(hook_fargs3_t *args, void *udata) {
-    // args->local.data0 = NULL;
-    // int dfd = (int)args->arg0;
-    // struct filename *pathname = (struct filename *)args->arg1;
-
-    // uid_t uid = current_uid();
-
-    // if (uid == target_uid
-    //     && strstr(pathname->name, "/data/app/~~Ig8noHry304p8ivYN8paHQ==/com.y10.hnly.sz06-X0BCYVLjXirRpkFBORt0oQ==/lib/arm64/libthemis.so")
-    //     && open_count == 2
-    // ) {
-    //     args->local.data0 = (uint64_t)pathname->name;
-    //     pathname->name = "/data/app/~~Ig8noHry304p8ivYN8paHQ==/com.y10.hnly.sz06-X0BCYVLjXirRpkFBORt0oQ==/lib/arm64/liblibc.so";
-    // }
-
-    // if (!is_delay && strstr(pathname->name, "libcocos2dlua.so")) {
-    //     is_delay = true;
-    //     msleep_ptr(10 * 1000);
-    // }
-}
-
-static void after_do_filp_open(hook_fargs3_t *args, void *udata) {
-    // if (args->local.data0) {
-    //     struct filename *pathname = (struct filename *)args->arg1;
-    //     pathname->name = (const char *)args->local.data0;
-    // }
-}
-
 static void before_openat(hook_fargs4_t *args, void *udata) {
     int dfd = (int)syscall_argn(args, 0);
     const char __user *filename = (const char __user *)syscall_argn(args, 1);
@@ -410,23 +368,19 @@ static void before_openat(hook_fargs4_t *args, void *udata) {
     args->local.data2 = (uint64_t)uid;
     args->local.data3 = (uint64_t)filename;
 
-    // if (uid == target_uid) {
-    //     char buf[256];
-    //     compat_strncpy_from_user(buf, filename, sizeof(buf));
+    if (uid == target_uid) {
+        char buf[256];
+        compat_strncpy_from_user(buf, filename, sizeof(buf));
 
-    //     // if (strstr(buf, "libthemis.so")) {
-    //     //     open_count++;
-    //     // }
+        if (strstr(buf, "openat_need_skip")) {
+            args->skip_origin = true;
+            args->ret = -2;
+        }
 
-    //     // if (strstr(buf, "5d38d6cd.0")) {
-    //     //     args->skip_origin = true;
-    //     //     args->ret = -2;
-    //     // }
-
-    //     if (strstr(buf, "global-metadata.dat")) {
-    //         unwind(regs);
-    //     }
-    // }
+        if (strstr(buf, "openat_need_unwind")) {
+            unwind(regs);
+        }
+    }
 }
 
 static void after_openat(hook_fargs4_t *args, void *udata) {
@@ -462,14 +416,14 @@ static void before_unlinkat(hook_fargs3_t *args, void *udata) {
         pr_info("unlinkat pid: %d tgid: %d uid: %u filename: %s\n", 
             pid, tgid, uid, buf);
 
-        // if (strstr(buf, "5d38d6cd.0")) {
-        //     args->skip_origin = true;
-        //     args->ret = 0;
-        // }
+        if (strstr(buf, "unlinkat_need_skip")) {
+            args->skip_origin = true;
+            args->ret = 0;
+        }
 
-        // if (strstr(buf, "global-metadata.dat")) {
-        //     unwind(regs);
-        // }
+        if (strstr(buf, "unlinkat_need_unwind")) {
+            unwind(regs);
+        }
     }
 }
 
@@ -494,12 +448,6 @@ static void before_mmap(hook_fargs6_t *args, void *udata) {
     args->local.data5 = (uint64_t)prot;
     args->local.data6 = (uint64_t)fd;
     args->local.data7 = (uint64_t)offset;
-
-    // if (uid == target_uid && length == 0x4711340 && offset == 0x2b9c000) {
-    //     // set_syscall_argn(args, 1, 0x8bda8);
-    //     set_syscall_argn(args, 2, 7);
-    //     // set_syscall_argn(args, 5, 0x1);
-    // }
 }
 
 static void after_mmap(hook_fargs6_t *args, void *udata) {
@@ -532,15 +480,6 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             is_hook = true;
         }
     }
-
-    // if (uid == target_uid && length == 0x4711340 && offset == 0x2b9c000) {
-    //     __arch_copy_to_user_ptr((void *)((char *)segment_addr + segment_length), patch_code, sizeof(patch_code));
-    // }
-
-    // if (uid == target_uid && length == 0x5c515c8 && offset == 0x0) {
-    //     tmp_filp_size = length;
-    //     __arch_copy_from_user_ptr(tmp_buf, addr, tmp_filp_size);
-    // }
 }
 
 static void before_munmap(hook_fargs2_t *args, void *udata) {
@@ -556,11 +495,6 @@ static void before_munmap(hook_fargs2_t *args, void *udata) {
         pr_info("munmap pid: %d tgid: %d uid: %u addr: %px length: %zx\n", 
             pid, tgid, uid, addr, length);
     }
-
-    // if (uid == target_uid && addr == segment_addr) {
-    //     args->skip_origin = true;
-    //     args->ret = 0;
-    // }
 }
 
 static void before_mprotect(hook_fargs3_t *args, void *udata) {
@@ -576,52 +510,6 @@ static void before_mprotect(hook_fargs3_t *args, void *udata) {
     if (uid == target_uid) {
         pr_info("mprotect pid: %d tgid: %d uid: %u addr: %px length: %zx prot: %d\n", pid, tgid, uid, addr, length, prot);
     }
-
-    // if (uid == target_uid && addr == segment_addr && prot == 5) {
-    //     args->skip_origin = true;
-    //     args->ret = 0;
-    // }
-
-    // if (uid == target_uid && addr == segment_addr && prot == 5) {
-    //     __arch_copy_to_user_ptr((void *)((char *)segment_addr + segment_length), patch_code, sizeof(patch_code));
-    //     set_syscall_argn(args, 1, PAGE_ALIGN(segment_length));
-    // }
-
-    // if (uid == target_uid && length == 0x5c515c8 && prot == 1) {
-    //     tmp_filp_size = length;
-    //     __arch_copy_from_user_ptr(tmp_buf, addr, tmp_filp_size);
-    // }
-}
-
-static void before_kill(hook_fargs2_t *args, void *udata) {
-    // int sig = (int)syscall_argn(args, 1);
-
-    // struct task_struct *task = current;
-    // pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
-    // pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
-    // uid_t uid = current_uid();
-
-    // if (uid == target_uid) {
-    //     pr_info("kill pid: %d tgid: %d uid: %u, sig: %d\n", pid, tgid, uid, sig);
-    // }
-
-    // if (uid == target_uid) {
-    //     args->skip_origin = true;
-    //     args->ret = 0;
-    // }
-}
-
-static void before_exit(hook_fargs1_t *args, void *udata) {
-    // int status = (int)syscall_argn(args, 0);
-
-    // struct task_struct *task = current;
-    // pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
-    // pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
-    // uid_t uid = current_uid();
-
-    // if (uid == target_uid) {
-    //     pr_info("exit pid: %d tgid: %d uid: %u status: %d\n", pid, tgid, uid, status);
-    // }
 }
 
 static void before_ptrace(hook_fargs4_t *args, void *udata) {
@@ -766,14 +654,6 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     if (err) {
         pr_err("hook munmap error: %d\n", err);
     }
-    err = inline_hook_syscalln(__NR_kill, 2, before_kill, NULL, NULL);
-    if (err) {
-        pr_err("hook kill error: %d\n", err);
-    }
-    err = inline_hook_syscalln(__NR_exit, 1, before_exit, NULL, NULL);
-    if (err) {
-        pr_err("hook exit error: %d\n", err);
-    }
     err = inline_hook_syscalln(__NR_ptrace, 4, before_ptrace, NULL, NULL);
     if (err) {
         pr_err("hook ptrace error: %d\n", err);
@@ -781,10 +661,6 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     err = inline_hook_syscalln(__NR_mprotect, 3, before_mprotect, NULL, NULL);
     if (err) {
         pr_err("hook mprotect error: %d\n", err);
-    }
-    err = hook_wrap3(do_filp_open_ptr, before_do_filp_open, after_do_filp_open, NULL);
-    if (err) {
-        pr_err("hook do_filp_open error: %d\n", err);
     }
     err = inline_hook_syscalln(__NR_close, 1, before_close, NULL, NULL);
     if (err) {
@@ -838,12 +714,9 @@ static long hook_exit(void *__user reserved) {
     inline_unhook_syscalln(__NR_unlinkat, before_unlinkat, NULL);
     inline_unhook_syscalln(__NR3264_mmap, before_mmap, after_mmap);
     inline_unhook_syscalln(__NR_munmap, before_munmap, NULL);
-    inline_unhook_syscalln(__NR_kill, before_kill, NULL);
-    inline_unhook_syscalln(__NR_exit, before_exit, NULL);
     inline_unhook_syscalln(__NR_ptrace, before_ptrace, NULL);
     inline_unhook_syscalln(__NR_mprotect, before_mprotect, NULL);
     inline_unhook_syscalln(__NR_close, before_close, NULL);
-    hook_unwrap(do_filp_open_ptr, before_do_filp_open, after_do_filp_open);
     hook_unwrap(reinstall_suspended_bps_ptr, NULL, after_reinstall_suspended_bps);
     hook_unwrap(force_sig_info_ptr, before_force_sig_info, NULL);
     hook_unwrap(wake_up_new_task_ptr, before_wake_up_new_task, NULL);
