@@ -63,9 +63,6 @@ static bool is_hook = false;
 static struct perf_event * __percpu *hbp = NULL;
 static struct perf_event_attr attr;
 static struct perf_event *hwbp = NULL;
-static struct perf_event * __percpu *hbp_next = NULL;
-static struct perf_event_attr attr_next;
-static struct perf_event *hwbp_next = NULL;
 static void *tmp_buf = NULL;
 static size_t tmp_buf_size = 100 * 1024 * 1024;
 static struct file *tmp_filp = NULL;
@@ -276,23 +273,6 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
 
                 task_work_add_ptr(current, &trace_start_work, true);
             }
-
-        } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
-            // unwind(regs);
-
-            // char buf[256];
-            // memset(buf, 0 ,sizeof(buf));
-            // pr_info("[0x%llx]regs[0]: %px\n", segment_func_offset_next, regs->regs[0]);
-            // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[0]), sizeof(buf));
-            // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[0]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
-            // memset(buf, 0 ,sizeof(buf));
-            // pr_info("[0x%llx]regs[1]: %px\n", segment_func_offset_next, regs->regs[1]);
-            // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[1]), sizeof(buf));
-            // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[1]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
-            // memset(buf, 0 ,sizeof(buf));
-            // pr_info("[0x%llx]regs[2]: %px\n", segment_func_offset_next, regs->regs[2]);
-            // __arch_copy_from_user_ptr(buf, (void *)(regs->regs[2]), sizeof(buf));
-            // print_hex_dump_ptr(KERN_INFO, "hexdump_regs[2]: ", DUMP_PREFIX_OFFSET, 16, 1, buf, sizeof(buf), true);
         }
     }
 }
@@ -470,18 +450,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
             if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
             selinux_state_ptr->enforcing = 1;
-        }
-
-        if (segment_func_offset_next != 0x0) {
-            init_hwbp_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
-            selinux_state_ptr->enforcing = 0;
-            hbp_next = register_wide_hw_breakpoint_ptr(&attr_next, NULL, NULL);
-            if (IS_ERR(hbp_next)) { pr_err("hbp_next: %ld\n", PTR_ERR(hbp_next)); hbp_next = NULL; }
-            selinux_state_ptr->enforcing = 1;
-        }
-        
-        if (hbp || hbp_next) {
-            is_hook = true;
+            if (hbp) { is_hook = true; }
         }
     }
 }
@@ -717,7 +686,6 @@ static long hook_exit(void *__user reserved) {
     hook_unwrap(do_exit_ptr, before_do_exit, NULL);
     
     if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
-    if (hbp_next && !IS_ERR(hbp_next)) unregister_wide_hw_breakpoint_ptr(hbp_next);
     if (watchdog_ev) {
         perf_event_release_kernel_ptr(watchdog_ev);
         watchdog_ev = NULL;
