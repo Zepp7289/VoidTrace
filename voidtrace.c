@@ -23,17 +23,12 @@ KPM_DESCRIPTION("invisible in-kernel process tracer");
 static pid_t (*__task_pid_nr_ns_ptr)(struct task_struct *task, enum pid_type type, struct pid_namespace *ns) = NULL;
 static struct file *(*filp_open_ptr)(const char *filename, int flags, umode_t mode) = NULL;
 static int (*filp_close_ptr)(struct file *filp, fl_owner_t id) = NULL;
-static ssize_t (*vfs_read_ptr)(struct file *file, char __user *buf, size_t count, loff_t *pos) = NULL;
-static ssize_t (*vfs_write_ptr)(struct file *file, const char __user *buf, size_t count, loff_t *pos) = NULL;
 static ssize_t (*kernel_read_ptr)(struct file *file, void *buf, size_t count, loff_t *pos) = NULL;
 static ssize_t (*kernel_write_ptr)(struct file *file, const void *buf, size_t count, loff_t *pos) = NULL;
 static void *(*vmalloc_ptr)(unsigned long size) = NULL;
 static void (*vfree_ptr)(const void *addr) = NULL;
-static void (*msleep_ptr)(unsigned int msecs) = NULL;
-static struct file *(*do_filp_open_ptr)(int dfd, struct filename *pathname, const struct open_flags *op) = NULL;
 static unsigned long  (*__arch_copy_to_user_ptr)(void __user *to, const void *from, unsigned long n) = NULL;
 static unsigned long (*__arch_copy_from_user_ptr)(void *to, const void __user *from, unsigned long n) = NULL;
-static void (*save_stack_trace_user_ptr)(struct stack_trace *trace) = NULL;
 static struct perf_event * __percpu *(*register_wide_hw_breakpoint_ptr)(struct perf_event_attr *attr, perf_overflow_handler_t triggered, void *context) = NULL;
 static void (*unregister_wide_hw_breakpoint_ptr)(struct perf_event * __percpu *cpu_events) = NULL;
 static struct selinux_state *selinux_state_ptr = NULL;
@@ -475,7 +470,7 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
             selinux_state_ptr->enforcing = 1;
         }
-        
+
         if (segment_func_offset_next != 0x0) {
             init_hwbp_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
             selinux_state_ptr->enforcing = 0;
@@ -583,10 +578,6 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function filp_open addr: %px\n", filp_open_ptr);
     filp_close_ptr = (void *)kallsyms_lookup_name("filp_close");
     pr_info("kernel function filp_close addr: %px\n", filp_close_ptr);
-    vfs_read_ptr = (void *)kallsyms_lookup_name("vfs_read");
-    pr_info("kernel function vfs_read addr: %px\n", vfs_read_ptr);
-    vfs_write_ptr = (void *)kallsyms_lookup_name("vfs_write");
-    pr_info("kernel function vfs_write addr: %px\n", vfs_write_ptr);
     kernel_read_ptr = (void *)kallsyms_lookup_name("kernel_read");
     pr_info("kernel function kernel_read addr: %px\n", kernel_read_ptr);
     kernel_write_ptr = (void *)kallsyms_lookup_name("kernel_write");
@@ -595,16 +586,10 @@ static long hook_init(const char *args, const char *event, void *__user reserved
     pr_info("kernel function vmalloc addr: %px\n", vmalloc_ptr);
     vfree_ptr = (void *)kallsyms_lookup_name("vfree");
     pr_info("kernel function vfree addr: %px\n", vfree_ptr);
-    do_filp_open_ptr = (void *)kallsyms_lookup_name("do_filp_open");
-    pr_info("kernel function do_filp_open addr: %px\n", do_filp_open_ptr);
-    msleep_ptr = (void *)kallsyms_lookup_name("msleep");
-    pr_info("kernel function msleep addr: %px\n", msleep_ptr);
     __arch_copy_to_user_ptr = (void *)kallsyms_lookup_name("__arch_copy_to_user");
     pr_info("kernel function __arch_copy_to_user addr: %px\n", __arch_copy_to_user_ptr);
     __arch_copy_from_user_ptr = (void *)kallsyms_lookup_name("__arch_copy_from_user");
     pr_info("kernel function __arch_copy_from_user addr: %px\n", __arch_copy_from_user_ptr);
-    save_stack_trace_user_ptr = (void *)kallsyms_lookup_name("save_stack_trace_user");
-    pr_info("kernel function save_stack_trace_user addr: %px\n", save_stack_trace_user_ptr);
     register_wide_hw_breakpoint_ptr = (void *)kallsyms_lookup_name("register_wide_hw_breakpoint");
     pr_info("kernel function register_wide_hw_breakpoint addr: %px\n", register_wide_hw_breakpoint_ptr);
     unregister_wide_hw_breakpoint_ptr = (void *)kallsyms_lookup_name("unregister_wide_hw_breakpoint");
