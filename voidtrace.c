@@ -58,6 +58,7 @@ static bool is_delay = false;
 static int open_count = 0;
 static void *segment_addr = NULL;
 static uint64_t segment_length = 0x0;
+static uint64_t segment_offset = 0x0;
 static uint64_t segment_func_offset = 0x15B8ACC;
 static uint64_t segment_func_offset_next = 0x4097000;
 static unsigned char patch_code[] = {
@@ -516,9 +517,8 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
             pid, tgid, uid, addr, length, prot, fd, offset, (void *)args->ret);
     }
 
-    if (uid == target_uid && length == 0x3110000 && offset == 0x0 && !is_hook) {
+    if (uid == target_uid && length == segment_length && offset == segment_offset && !is_hook) {
         segment_addr = (void *)(args->ret);
-        segment_length = length;
 
         init_hwbp_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
         // init_hwbp_attr(&attr_next, (void *)((char *)segment_addr + segment_func_offset_next));
