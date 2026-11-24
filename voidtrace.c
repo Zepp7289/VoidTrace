@@ -282,18 +282,18 @@ static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
             //     // __arch_copy_to_user_ptr((void *)(regs->regs[1] + 0x8D8A), patch_code, sizeof(patch_code));
             // }
 
-            // if (tmp_buf && !trace_task && !is_trace) {
-            //     pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
-            //     trace_steps++;
-            //     is_trace = true;
-            //     trace_task = current;
+            if (tmp_buf && !trace_task && !is_trace) {
+                pr_info("trace start pc: %px steps: %lu\n", regs->pc, trace_steps);
+                trace_steps++;
+                is_trace = true;
+                trace_task = current;
 
-            //     memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
-            //     fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
-            //     tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
+                memcpy((char *)tmp_buf + tmp_cur_size, &regs->user_regs, sizeof(regs->user_regs));
+                fpsimd_save_state_ptr((struct user_fpsimd_state *)((char *)tmp_buf + tmp_cur_size + sizeof(regs->user_regs)));
+                tmp_cur_size += sizeof(regs->user_regs) + sizeof(struct user_fpsimd_state);
 
-            //     task_work_add_ptr(current, &trace_start_work, true);
-            // }
+                task_work_add_ptr(current, &trace_start_work, true);
+            }
 
         } else if (regs->pc == (uint64_t)segment_addr + segment_func_offset_next) {
             // unwind(regs);
