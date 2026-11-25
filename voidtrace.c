@@ -61,9 +61,8 @@ static unsigned char patch_code[] = {
 
 static void *segment_addr = NULL;
 static bool is_hook = false;
-static struct perf_event * __percpu *hbp = NULL;
-static struct perf_event_attr attr;
-static struct perf_event *hwbp = NULL;
+static struct perf_event * __percpu *hwbp = NULL;
+static struct perf_event_attr hwbp_attr;
 static void *tmp_buf = NULL;
 static size_t tmp_buf_size = 100 * 1024 * 1024;
 static struct file *tmp_filp = NULL;
@@ -446,12 +445,12 @@ static void after_mmap(hook_fargs6_t *args, void *udata) {
         segment_addr = (void *)(args->ret);
 
         if (segment_func_offset != 0x0) {
-            init_hwbp_attr(&attr, (void *)((char *)segment_addr + segment_func_offset));
+            init_hwbp_attr(&hwbp_attr, (void *)((char *)segment_addr + segment_func_offset));
             selinux_state_ptr->enforcing = 0;
-            hbp = register_wide_hw_breakpoint_ptr(&attr, NULL, NULL);
-            if (IS_ERR(hbp)) { pr_err("hbp: %ld\n", PTR_ERR(hbp)); hbp = NULL; }
+            hwbp = register_wide_hw_breakpoint_ptr(&hwbp_attr, NULL, NULL);
+            if (IS_ERR(hwbp)) { pr_err("hbp: %ld\n", PTR_ERR(hwbp)); hwbp = NULL; }
             selinux_state_ptr->enforcing = 1;
-            if (hbp) { is_hook = true; }
+            if (hwbp) { is_hook = true; }
         }
     }
 }
@@ -686,7 +685,7 @@ static long hook_exit(void *__user reserved) {
     hook_unwrap(wake_up_new_task_ptr, before_wake_up_new_task, NULL);
     hook_unwrap(do_exit_ptr, before_do_exit, NULL);
     
-    if (hbp && !IS_ERR(hbp)) unregister_wide_hw_breakpoint_ptr(hbp);
+    if (hwbp && !IS_ERR(hwbp)) unregister_wide_hw_breakpoint_ptr(hwbp);
     if (watchdog_ev) {
         perf_event_release_kernel_ptr(watchdog_ev);
         watchdog_ev = NULL;
