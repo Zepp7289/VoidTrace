@@ -192,23 +192,6 @@ static void trace_stop_fn(struct callback_head *work) {
     }
 }
 
-static void before_wake_up_new_task(hook_fargs1_t *args, void *udata) {
-    struct task_struct *p = (struct task_struct *)args->arg0;
-
-    struct task_struct *task = current;
-    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
-    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
-    uid_t uid = current_uid();
-
-    pid_t child_pid = __task_pid_nr_ns_ptr(p, PIDTYPE_PID, NULL);
-    pid_t child_tgid = __task_pid_nr_ns_ptr(p, PIDTYPE_TGID, NULL);
-
-    if (uid == target_uid) {
-        pr_info("wake_up_new_task pid: %d tgid: %d uid: %u child pid: %d child tgid: %d\n",
-                pid, tgid, uid, child_pid, child_tgid);
-    }
-}
-
 static void before_perf_bp_event(hook_fargs2_t *args, void *udata) {
     struct perf_event *bp = (struct perf_event *)args->arg0;
     struct pt_regs *regs = (struct pt_regs *)args->arg1;
@@ -517,6 +500,23 @@ static void before_close(hook_fargs1_t *args, void *udata) {
 
     if (uid == target_uid) {
         pr_info("close pid: %d tgid: %d uid: %u fd: %d\n", pid, tgid, uid, fd);
+    }
+}
+
+static void before_wake_up_new_task(hook_fargs1_t *args, void *udata) {
+    struct task_struct *p = (struct task_struct *)args->arg0;
+
+    struct task_struct *task = current;
+    pid_t pid = __task_pid_nr_ns_ptr(task, PIDTYPE_PID, NULL);
+    pid_t tgid = __task_pid_nr_ns_ptr(task, PIDTYPE_TGID, NULL);
+    uid_t uid = current_uid();
+
+    pid_t child_pid = __task_pid_nr_ns_ptr(p, PIDTYPE_PID, NULL);
+    pid_t child_tgid = __task_pid_nr_ns_ptr(p, PIDTYPE_TGID, NULL);
+
+    if (uid == target_uid) {
+        pr_info("wake_up_new_task pid: %d tgid: %d uid: %u child pid: %d child tgid: %d\n",
+                pid, tgid, uid, child_pid, child_tgid);
     }
 }
 
